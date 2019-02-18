@@ -5,7 +5,7 @@ defmodule Botter.MixProject do
     [
       name: "Botter",
       app: :botter,
-      version: "0.1.0",
+      version: "0.0.1",
       elixir: "~> 1.8",
       source_url: "https://github.com/kaaboaye/botter",
       start_permanent: Mix.env() == :prod,
