@@ -9,7 +9,12 @@ defmodule Botter.MixProject do
       elixir: "~> 1.8",
       source_url: "https://github.com/kaaboaye/botter",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      description: "A simple framework for creating command bots",
+      package: [
+        licenses: ["i dont know yet"],
+        links: %{"GitHub" => "https://github.com/kaaboaye/botter"}
+      ]
     ]
   end
 
