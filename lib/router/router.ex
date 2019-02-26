@@ -26,11 +26,13 @@ defmodule Botter.Router do
     end
   end
 
-  defmacro __using__(_options) do
+  defmacro __using__(_opts) do
     quote do
       import unquote(__MODULE__)
       Module.register_attribute(__MODULE__, :botter_commands, accumulate: true)
       @before_compile unquote(__MODULE__)
+
+      def handle(command, context), do: internal_handle(String.split(command, " "), context)
     end
   end
 
@@ -79,9 +81,11 @@ defmodule Botter.Router do
   defp def_handle(commands) do
     commands =
       Enum.map(commands, fn {name, module, function, _opts} ->
+        {head, params} = prepare_params(name)
+
         quote do
-          def handle(unquote(name), context) do
-            res = unquote(module).unquote(function)(context, %{})
+          defp internal_handle(unquote(head), context) do
+            res = unquote(module).unquote(function)(context, unquote(params))
             {:ok, res}
           end
         end
@@ -94,5 +98,83 @@ defmodule Botter.Router do
         {:error, :command_not_found}
       end
     end
+  end
+
+  defp prepare_params(command) do
+    command = parse_command(command)
+
+    params =
+      Enum.filter(command, &is_atom/1)
+      |> Enum.map(&{&1, {&1, [], Elixir}})
+
+    params = {:%{}, [], params}
+
+    head =
+      Enum.map(command, fn
+        param when is_atom(param) -> {param, [], Elixir}
+        x -> x
+      end)
+
+    {head, params}
+  end
+
+  defp parse_command(command) do
+    command
+    |> String.split(" ")
+    |> Enum.map(fn word ->
+      param = Regex.named_captures(~r/^{(?<param>(.+))}$/, word)
+
+      if param,
+        do: param |> Map.fetch!("param") |> String.to_atom(),
+        else: word
+
+      # if param do
+      #   param |> Map.fetch!("param") |> String.to_atom()
+      # else
+      #   word
+      #   case parse_command_word(word) do
+      #     [] -> ""
+      #     [word] -> word
+      #     word -> word
+      #   end
+      # end
+    end)
+  end
+
+  defp parse_command_word(command) do
+    ~r/(?<start>){[^}]+}(?<end>)/
+    |> Regex.split(command, on: [:start, :end])
+    |> Enum.map(fn
+      "{" <> param -> String.slice(param, 0..-2) |> String.to_atom()
+      str -> str
+    end)
+    |> Enum.filter(&(&1 != ""))
+  end
+
+  defp prepare_word_params(command) do
+    command = parse_command_word(command)
+
+    head =
+      Enum.reduce(command, nil, fn
+        "", acc ->
+          acc
+
+        item, nil ->
+          Macro.escape(item)
+
+        item, acc when is_binary(item) ->
+          quote do: unquote(acc) <> unquote(item)
+
+        item, acc when is_atom(item) ->
+          quote do: unquote(acc) <> unquote({item, [], Elixir})
+      end)
+
+    params =
+      Enum.filter(command, &is_atom/1)
+      |> Enum.map(&{&1, {&1, [], Elixir}})
+
+    params = {:%{}, [], params}
+
+    {head, params}
   end
 end

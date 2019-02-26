@@ -1,4 +1,4 @@
-defmodule Botter.RouterTest do
+defmodule Botter.Router.BasicTest do
   use ExUnit.Case
   doctest Botter.Router
 
@@ -30,9 +30,9 @@ defmodule Botter.RouterTest do
 
   test "generates list of commands" do
     assert Test.Router.commands() === [
-             {"!user kick", Botter.RouterTest.Test, :kick},
-             {"!help", Botter.RouterTest.Test, :help},
-             {"ping", Botter.RouterTest.Test, :pong}
+             {"!user kick", __MODULE__.Test, :kick},
+             {"!help", __MODULE__.Test, :help},
+             {"ping", __MODULE__.Test, :pong}
            ]
   end
 
